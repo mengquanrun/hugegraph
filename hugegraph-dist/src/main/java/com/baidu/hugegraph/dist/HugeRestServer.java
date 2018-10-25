@@ -29,6 +29,12 @@ public class HugeRestServer {
 
     private static final Logger LOG = Log.logger(HugeRestServer.class);
 
+    private final RestServer server;
+
+    private HugeRestServer(RestServer server) {
+        this.server = server;
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             String msg = "HugeRestServer can only accept one config files";
@@ -37,7 +43,6 @@ public class HugeRestServer {
         }
 
         try {
-            RegisterUtil.registerBackends();
             // Start HugeRestServer
             start(args[0]);
         } catch (Exception e) {
@@ -47,10 +52,16 @@ public class HugeRestServer {
         LOG.info("HugeRestServer stopped");
     }
 
-    public static void start(String conf) throws Exception {
+    public static void register() {
+        RegisterUtil.registerBackends();
+        RegisterUtil.registerPlugins();
+    }
+
+    public static HugeRestServer start(String conf) throws Exception {
         RegisterUtil.registerServer();
 
         // Start RestServer
-        RestServer.start(conf);
+        RestServer server = RestServer.start(conf);
+        return new HugeRestServer(server);
     }
 }

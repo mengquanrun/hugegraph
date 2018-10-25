@@ -33,34 +33,46 @@ public class HugeGremlinServer {
 
     private static final String G_PREFIX = "__g_";
 
-    public static void main(String[] args) throws Exception {
+    private final ContextGremlinServer server;
 
+    public HugeGremlinServer(ContextGremlinServer server) {
+        this.server = server;
+    }
+
+    public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             String msg = "HugeGremlinServer can only accept one config files";
             LOG.error(msg);
             throw new HugeException(msg);
         }
 
+        register();
+
         try {
-            RegisterUtil.registerBackends();
             start(args[0]);
         } catch (Exception e) {
             LOG.error("HugeGremlinServer error:", e);
             throw e;
         }
         LOG.info("HugeGremlinServer started");
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOG.info("HugeGremlinServer stopped");
-        }));
     }
 
-    public static void start(String conf) throws Exception {
+    public static void register() {
+        RegisterUtil.registerBackends();
+        RegisterUtil.registerPlugins();
+    }
+
+    public static HugeGremlinServer start(String conf) throws Exception {
         // Start GremlinServer with inject traversal source
-        startWithInjectTraversal(conf);
+        return new HugeGremlinServer(startWithInjectTraversal(conf));
     }
 
-    private static void startWithInjectTraversal(String conf)
+    public void stop() {
+        LOG.info("Stopping HugeGremlinServer");
+        this.server.stop().join();
+    }
+
+    private static ContextGremlinServer startWithInjectTraversal(String conf)
                                                  throws Exception {
         LOG.info(GremlinServer.getHeader());
         final Settings settings;
@@ -70,7 +82,7 @@ public class HugeGremlinServer {
         } catch (Exception ex) {
             LOG.error("Can't found the configuration file at {} or " +
                       "being parsed properly. [{}]", conf, ex.getMessage());
-            return;
+            throw ex;
         }
 
         LOG.info("Configuring Gremlin Server from {}", conf);
@@ -85,5 +97,7 @@ public class HugeGremlinServer {
             server.stop().join();
             throw new HugeException("Failed to start Gremlin Server");
         }).join();
+
+        return server;
     }
 }
