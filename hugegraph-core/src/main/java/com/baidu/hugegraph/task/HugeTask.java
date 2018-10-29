@@ -47,7 +47,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private static final Set<Status> COMPLETED_STATUSES =
             ImmutableSet.of(Status.SUCCESS, Status.CANCELLED, Status.FAILED);
 
-    private final HugeTaskCallable<V> callable;
+    private final TaskCallable<V> callable;
 
     private String type;
     private String name;
@@ -64,11 +64,11 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile String result;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
-        this(id, parent, HugeTaskCallable.fromClass(callable));
+        this(id, parent, TaskCallable.fromClass(callable));
         this.input = input;
     }
 
-    public HugeTask(Id id, Id parent, HugeTaskCallable<V> callable) {
+    public HugeTask(Id id, Id parent, TaskCallable<V> callable) {
         super(callable);
 
         E.checkArgumentNotNull(id, "Task id can't be null");
@@ -240,7 +240,7 @@ public class HugeTask<V> extends FutureTask<V> {
         super.setException(e);
     }
 
-    protected HugeTaskCallable<V> callable() {
+    protected TaskCallable<V> callable() {
         return this.callable;
     }
 
@@ -379,11 +379,11 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public static <V> HugeTask<V> fromVertex(Vertex vertex) {
         String callableName = vertex.value(P.CALLABLE);
-        HugeTaskCallable<V> callable;
+        TaskCallable<V> callable;
         try {
-            callable = HugeTaskCallable.fromClass(callableName);
+            callable = TaskCallable.fromClass(callableName);
         } catch (Exception e) {
-            callable = HugeTaskCallable.empty(e);
+            callable = TaskCallable.empty(e);
         }
 
         HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);

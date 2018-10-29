@@ -43,7 +43,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.Status;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -67,7 +67,7 @@ public class TaskAPI extends API {
                   graph, status, limit);
 
         HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = g.taskScheduler();
 
         Iterator<HugeTask<Object>> itor;
         if (status == null) {
@@ -93,7 +93,7 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] get task: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = g.taskScheduler();
         return scheduler.task(IdGenerator.of(id)).asMap();
     }
 
@@ -106,7 +106,7 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = g.taskScheduler();
 
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (task.completed()) {

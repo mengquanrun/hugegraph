@@ -56,7 +56,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
 
-public class HugeTaskScheduler {
+public class TaskScheduler {
 
     private final HugeGraph graph;
     private final ExecutorService taskExecutor;
@@ -68,7 +68,7 @@ public class HugeTaskScheduler {
 
     private static final long NO_LIMIT = -1l;
 
-    public HugeTaskScheduler(HugeGraph graph,
+    public TaskScheduler(HugeGraph graph,
                              ExecutorService taskExecutor,
                              ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
@@ -88,6 +88,10 @@ public class HugeTaskScheduler {
 
     public HugeGraph graph() {
         return this.graph;
+    }
+
+    public int pendingTasks() {
+        return this.tasks.size();
     }
 
     private TaskTransaction tx() {

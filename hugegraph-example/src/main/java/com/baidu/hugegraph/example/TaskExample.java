@@ -28,10 +28,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskCallable;
-import com.baidu.hugegraph.task.HugeTaskManager;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
 import com.baidu.hugegraph.task.Status;
+import com.baidu.hugegraph.task.TaskCallable;
+import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
@@ -49,8 +49,7 @@ public class TaskExample {
         task.type("type-1");
         task.name("test-task");
 
-        HugeTaskScheduler scheduler = HugeTaskManager.instance()
-                                                     .getScheduler(graph);
+        TaskScheduler scheduler = TaskManager.instance().getScheduler(graph);
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> itor;
@@ -83,7 +82,7 @@ public class TaskExample {
         HugeGraph.shutdown(30L);
     }
 
-    public static class TestTask extends HugeTaskCallable<Integer> {
+    public static class TestTask extends TaskCallable<Integer> {
 
         public static final int UNIT = 100;
 
