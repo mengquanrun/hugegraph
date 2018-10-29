@@ -138,8 +138,10 @@ public class HugeTaskScheduler {
 
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        this.tasks.remove(task.id());
-        task.cancel(false);
+        if (!task.completed()) {
+            task.cancel(false);
+            this.remove(task.id());
+        }
     }
 
     protected void remove(Id id) {
@@ -213,16 +215,26 @@ public class HugeTaskScheduler {
     public <V> HugeTask<V> deleteTask(Id id) {
         HugeTask<?> task = this.tasks.get(id);
         if (task != null) {
+            // We assume tasks only in memory may be incomplete status
             E.checkState(task.completed(),
-                         "Can't delete task '%s' in status %s",
+                         "Can't delete incomplete task '%s' in status '%s'. " +
+                         "Please try to cancel the task first",
                          id, task.status());
+            this.remove(id);
         }
         return this.submit(() -> {
+            HugeTask<V> result = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             if (vertices.hasNext()) {
-                this.tx().removeVertex((HugeVertex) vertices.next());
+                HugeVertex vertex = (HugeVertex) vertices.next();
+                result = HugeTask.fromVertex(vertex);
+                E.checkState(result.completed(),
+                             "Can't delete incomplete task '%s' in status '%s'",
+                             id, result.status());
+                this.tx().removeVertex(vertex);
                 assert !vertices.hasNext();
             }
+            return result;
         });
     }
 

@@ -346,6 +346,10 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public Map<String, Object> asMap() {
+        return this.asMap(true);
+    }
+
+    public Map<String, Object> asMap(boolean withDetails) {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 
@@ -367,10 +371,10 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.update != null) {
             map.put(Hidden.unHide(P.UPDATE), this.update);
         }
-        if (this.input != null) {
+        if (withDetails && this.input != null) {
             map.put(Hidden.unHide(P.INPUT), this.input);
         }
-        if (this.result != null) {
+        if (withDetails && this.result != null) {
             map.put(Hidden.unHide(P.RESULT), this.result);
         }
 
