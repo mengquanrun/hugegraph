@@ -38,20 +38,21 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RocksDBStore implements BackendStore {
+public abstract class RocksDBStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
@@ -79,12 +80,22 @@ public abstract class RocksDBStore implements BackendStore {
         this.store = store;
         this.sessions = null;
         this.tableDiskMapping = new HashMap<>();
+
+        this.registerMetaHandlers();
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics();
+            return metrics.getMetrics((RocksDBSessions.Session) session);
+        });
     }
 
     protected void registerTableManager(HugeType type, RocksDBTable table) {
         this.tables.put(type, table);
     }
 
+    @Override
     protected final RocksDBTable table(HugeType type) {
         assert type != null;
         RocksDBTable table = this.tables.get(type);
@@ -357,12 +368,7 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        RocksDBTable table = this.table(type);
-        return table.metadata(this.session(type), meta, args);
-    }
-
-    private Session session(HugeType tableType) {
+    protected Session session(HugeType tableType) {
         this.checkOpened();
 
         // Optimized disk
@@ -501,6 +507,31 @@ public abstract class RocksDBStore implements BackendStore {
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
                       "RocksDBGraphStore.nextId()");
+        }
+    }
+
+    private static class RocksDBMetrics {
+
+        private static final String INDEX_FILTER = "rocksdb.estimate-table-readers-mem";
+        private static final String MEM_TABLE = "rocksdb.cur-size-all-mem-tables";
+        private static final String DATA_SIZE = "rocksdb.estimate-live-data-size";
+
+        public Map<String, Object> getMetrics(Session session) {
+            Map<String, Object> metrics = InsertionOrderUtil.newMap();
+            metrics.put("mem_used", this.getMemUsed(session));
+            metrics.put("data_szie", this.getDataSize(session));
+            // Can put something else
+            return metrics;
+        }
+
+        private long getMemUsed(Session session) {
+            long indexAndFilter = Long.parseLong(session.property(INDEX_FILTER));
+            long memtable = Long.parseLong(session.property(MEM_TABLE));
+            return indexAndFilter + memtable;
+        }
+
+        private long getDataSize(Session session) {
+            return Long.parseLong(session.property(DATA_SIZE));
         }
     }
 }

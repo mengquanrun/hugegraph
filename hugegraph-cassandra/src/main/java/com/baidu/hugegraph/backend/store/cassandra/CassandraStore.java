@@ -29,11 +29,12 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -46,7 +47,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
-public abstract class CassandraStore implements BackendStore {
+public abstract class CassandraStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
@@ -58,6 +59,7 @@ public abstract class CassandraStore implements BackendStore {
     private final BackendStoreProvider provider;
 
     private final CassandraSessionPool sessions;
+    // TODO: move to parent class
     private final Map<HugeType, CassandraTable> tables;
 
     private HugeConfig conf;
@@ -77,7 +79,15 @@ public abstract class CassandraStore implements BackendStore {
 
         this.conf = null;
 
+        this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            CassandraMetrics metrics = new CassandraMetrics(cluster(), conf);
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, CassandraTable table) {
@@ -224,14 +234,6 @@ public abstract class CassandraStore implements BackendStore {
 
         CassandraTable table = this.table(CassandraTable.tableType(query));
         return table.query(this.sessions.session(), query);
-    }
-
-    @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        this.checkSessionConnected();
-
-        CassandraTable table = this.table(type);
-        return table.metadata(this.sessions.session(), meta, args);
     }
 
     @Override
@@ -406,6 +408,7 @@ public abstract class CassandraStore implements BackendStore {
         }
     }
 
+    @Override
     protected final CassandraTable table(HugeType type) {
         assert type != null;
         CassandraTable table = this.tables.get(type);
@@ -413,6 +416,11 @@ public abstract class CassandraStore implements BackendStore {
             throw new BackendException("Unsupported table type: %s", type);
         }
         return table;
+    }
+
+    @Override
+    protected BackendSession session(HugeType type) {
+        return this.sessions.session();
     }
 
     protected final void checkClusterConnected() {

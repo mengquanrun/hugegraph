@@ -111,4 +111,12 @@ public class CassandraOptions extends OptionHolder {
                     allowValues("none", "snappy", "lz4"),
                     "none"
             );
+
+    public static final ConfigOption<Integer> CASSANDRA_JMX_PORT =
+            new ConfigOption<>(
+                    "cassandra.jmx.port",
+                    "The jmx remote API service port of cassandra",
+                    rangeInt(1, 65535),
+                    7199
+            );
 }

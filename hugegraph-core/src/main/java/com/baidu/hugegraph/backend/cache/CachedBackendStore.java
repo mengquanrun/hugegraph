@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
@@ -39,7 +40,7 @@ public class CachedBackendStore implements BackendStore {
     private BackendStore store = null;
     private Cache cache = null;
 
-    public CachedBackendStore(BackendStore store) {
+    public CachedBackendStore(AbstractBackendStore store) {
         this.store = store;
         this.cache = CacheManager.instance().cache("store-" + store());
         // Set expire 30s
